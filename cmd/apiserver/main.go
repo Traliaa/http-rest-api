@@ -12,7 +12,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&configPath, "congig-path", "congif/apiserver.toml", "path to config file")
+	flag.StringVar(&configPath, "congig-path", "configs/apiserver.toml", "path to config file")
 
 }
 
