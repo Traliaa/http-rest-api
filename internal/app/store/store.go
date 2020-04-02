@@ -9,7 +9,7 @@ import (
 type Store struct {
 	config         *Config
 	db             *sql.DB
-	userRepository UserRepository
+	userRepository *UserRepository
 }
 
 //New store..
@@ -43,7 +43,7 @@ func (s *Store) User() *UserRepository {
 	if s.userRepository != nil {
 		return s.userRepository
 	}
-	s.userRepository = UserRepository{
+	s.userRepository = &UserRepository{
 		store: s,
 	}
 	return s.userRepository
