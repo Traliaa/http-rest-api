@@ -8,10 +8,10 @@ import (
 
 //User model
 type User struct {
-	ID                 int
-	Email              string
-	Password           string
-	Encrypted_password string
+	ID                int    `json:"id"`
+	Email             string `json:"email"`
+	Password          string `json:"password,omitempty"`
+	EncryptedPassword string `json:"-"`
 }
 
 //validate
@@ -20,7 +20,7 @@ func (u *User) Validate() error {
 		u,
 		validation.Field(&u.Email, validation.Required, is.Email),
 		validation.Field(&u.Password,
-			validation.By(requiredIf(u.Encrypted_password == "")), validation.Length(6, 100)))
+			validation.By(requiredIf(u.EncryptedPassword == "")), validation.Length(6, 100)))
 }
 
 //before create
@@ -30,9 +30,18 @@ func (u *User) BeforeCreate() error {
 		if err != nil {
 			return err
 		}
-		u.Encrypted_password = enc
+		u.EncryptedPassword = enc
 	}
 	return nil
+}
+
+func (u *User) Sanitize() {
+	u.Password = ""
+
+}
+
+func (u *User) ComparePassword(password string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
 }
 
 func encryptString(s string) (string, error) {

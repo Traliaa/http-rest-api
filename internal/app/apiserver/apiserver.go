@@ -1,69 +1,37 @@
 package apiserver
 
 import (
-	"github.com/Traliaa/http-rest-api/internal/app/store"
-	"github.com/sirupsen/logrus"
-	"io"
+	"database/sql"
+	"fmt"
+	"github.com/Traliaa/http-rest-api/internal/app/store/sqlstore"
+	"github.com/gorilla/sessions"
 	"net/http"
 )
-import "github.com/gorilla/mux"
 
-//создание структуры сервера
-type APIServer struct {
-	config *Config
-	logger *logrus.Logger
-	router *mux.Router
-	store  *store.Store
-}
-
-//инициализация структура
-func New(config *Config) *APIServer {
-	return &APIServer{
-		config: config,
-		logger: logrus.New(),
-		router: mux.NewRouter(),
-	}
-}
-
-//функция старта сервера
-func (s *APIServer) Start() error {
-	if err := s.configureLogger(); err != nil {
-		return err
-	}
-	s.configureRouter()
-
-	if err := s.configureStore(); err != nil {
-		return err
-	}
-
-	s.logger.Info("Start API Server")
-
-	return http.ListenAndServe(s.config.BindAddr, s.router)
-}
-
-func (s *APIServer) configureLogger() error {
-	level, err := logrus.ParseLevel(s.config.LogLevel)
+func Start(config *Config) error {
+	db, err := newDB(config.DatabaseURl)
 	if err != nil {
 		return err
 	}
-	s.logger.SetLevel(level)
-	return nil
-}
-func (s *APIServer) configureRouter() {
-	s.router.HandleFunc("/hello", s.handeHello())
+	store := sqlstore.New(db)
+	sessionStore := sessions.NewCookieStore([]byte(config.SessionKey))
+	srv := NewServer(store, sessionStore)
 
+	return http.ListenAndServe(config.BindAddr, srv)
 }
 
-func (s *APIServer) configureStore() error {
-	st := store.New(s.config.Store)
-	if err := st.Open(); err != nil {
-		return err
+func newDB(databaseURl string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", databaseURl)
+	if err != nil {
+		fmt.Print("no open")
+		return nil, err
 	}
-	s.store = st
-	return nil
-}
-func (s *APIServer) handeHello() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello")
+	//defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		fmt.Print("no ping")
+		return nil, err
+
 	}
+	return db, nil
 }
