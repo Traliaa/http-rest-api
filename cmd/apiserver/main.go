@@ -1,3 +1,31 @@
+// Package classification Account API.
+//
+// this is to show how to write RESTful APIs in golang.
+// that is to provide a detailed overview of the language specs
+//
+// Terms Of Service:
+//
+//     Schemes: http
+//     Host: localhost:8080
+//     Version: 1.0.0
+//     Contact: Korastelev Aleksey a.a.korastelev@gmail.com
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+//     Security:
+//     - api_key:
+//
+//     SecurityDefinitions:
+//     api_key:
+//          type: apiKey
+//          name: KEY
+//          in: header
+//
+// swagger:meta
 package main
 
 import (

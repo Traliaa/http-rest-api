@@ -1,0 +1,132 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "this is to show how to write RESTful APIs in golang.\nthat is to provide a detailed overview of the language specs",
+    "title": "Account API.",
+    "contact": {
+      "name": "Supun Muthutantri",
+      "email": "mydocs@example.com"
+    },
+    "version": "1.0.0"
+  },
+  "host": "localhost:8080",
+  "paths": {
+    "/accounts/{id}": {
+      "get": {
+        "description": "If the account is found, account will be returned else Error Not Found (404) will be returned.",
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Return an Account provided by the id.",
+        "operationId": "getAccount",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the account",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/accountRes"
+          },
+          "400": {
+            "$ref": "#/responses/badReq"
+          },
+          "404": {
+            "$ref": "#/responses/notFoundReq"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Account": {
+      "description": "Account request model",
+      "type": "object",
+      "properties": {
+        "first_name": {
+          "description": "First Name of the account holder",
+          "type": "string",
+          "x-go-name": "FirstName"
+        },
+        "id": {
+          "description": "Id of the account",
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "last_name": {
+          "description": "Last Name of the account holder",
+          "type": "string",
+          "x-go-name": "LastName"
+        },
+        "user_name": {
+          "description": "User Name of the account holder",
+          "type": "string",
+          "x-go-name": "UserName"
+        }
+      },
+      "x-go-package": "github.com/Traliaa/http-rest-api/internal/app/apiserver"
+    }
+  },
+  "responses": {
+    "accountRes": {
+      "description": "Account response payload",
+      "schema": {
+        "$ref": "#/definitions/Account"
+      }
+    },
+    "badReq": {
+      "description": "Error Bad Request",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code 400 -  Bad Request",
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Code"
+          }
+        }
+      }
+    },
+    "notFoundReq": {
+      "description": "Error Not Found",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code 404 -  Not Found",
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Code"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "name": "KEY",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "api_key": []
+    }
+  ]
+}

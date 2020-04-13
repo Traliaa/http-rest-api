@@ -3,6 +3,7 @@ package apiserver
 import (
 	"database/sql"
 	"fmt"
+	"github.com/Traliaa/http-rest-api/internal/app/monitoring"
 	"github.com/Traliaa/http-rest-api/internal/app/store/sqlstore"
 	"github.com/gorilla/sessions"
 	"net/http"
@@ -16,6 +17,9 @@ func Start(config *Config) error {
 	store := sqlstore.New(db)
 	sessionStore := sessions.NewCookieStore([]byte(config.SessionKey))
 	srv := NewServer(store, sessionStore)
+
+	//Start monitoring
+	monitoring.RecordMetrics()
 
 	return http.ListenAndServe(config.BindAddr, srv)
 }
