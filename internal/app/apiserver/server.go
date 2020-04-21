@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,9 +16,14 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 )
+
+const userPass = "nogin:pedik"
+const unauth = http.StatusUnauthorized
 
 // Account request model
 type Account struct {
@@ -300,10 +306,30 @@ func (s *server) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) echo(w http.ResponseWriter, r *http.Request) {
+	auth := r.Header.Get("Authorization")
+	if !strings.HasPrefix(auth, "Basic ") {
+		logrus.Print("Invalid authorization:", auth)
+		http.Error(w, http.StatusText(unauth), unauth)
+		return
+	}
+	up, err := base64.StdEncoding.DecodeString(auth[6:])
+	if err != nil {
+		logrus.Print("authorization decode error:", err)
+		http.Error(w, http.StatusText(unauth), unauth)
+		return
+	}
+	if string(up) != userPass {
+		logrus.Print("invalid username:password:", string(up))
+		http.Error(w, http.StatusText(unauth), unauth)
+		return
+	}
+	io.WriteString(w, "Goodbye, World!")
 
-	c, err := upgrader.Upgrade(w, r, nil)
+	c, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
+
 	if err != nil {
 		logrus.Error("upgrade:", err)
+		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 		return
 	}
 	defer c.Close()
