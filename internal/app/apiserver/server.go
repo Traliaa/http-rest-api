@@ -115,6 +115,7 @@ func (s *server) configureRouter() {
 	private := s.router.PathPrefix("/private").Subrouter()
 	private.Use(s.authenticateUsers)
 	private.HandleFunc("/whoami", s.handleWhoami()).Methods("GET")
+	s.router.HandleFunc("/echo1", s.echo1)
 
 }
 
@@ -323,7 +324,22 @@ func (s *server) echo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(unauth), unauth)
 		return
 	}
-	io.WriteString(w, "Goodbye, World!")
+
+	io.WriteString(w, "echo1")
+
+	c, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
+
+	if err != nil {
+		logrus.Error("upgrade:", err)
+		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+		return
+	}
+	defer c.Close()
+	webserver.SendClient(c)
+
+}
+
+func (s *server) echo1(w http.ResponseWriter, r *http.Request) {
 
 	c, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
 
