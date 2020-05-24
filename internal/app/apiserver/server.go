@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/Traliaa/http-rest-api/internal/app/model"
 	"github.com/Traliaa/http-rest-api/internal/app/store"
 	"github.com/Traliaa/http-rest-api/internal/app/webserver"
@@ -24,45 +23,6 @@ import (
 
 const userPass = "nogin:pedik"
 const unauth = http.StatusUnauthorized
-
-// Account request model
-type Account struct {
-	// Id of the account
-	ID string `json:"id"`
-	// First Name of the account holder
-	FirstName string `json:"first_name"`
-	// Last Name of the account holder
-	LastName string `json:"last_name"`
-	// User Name of the account holder
-	UserName string `json:"user_name"`
-}
-
-// Account response payload
-// swagger:response accountRes
-type swaggAccountRes struct {
-	// in:body
-	Body Account
-}
-
-// Error Bad Request
-// swagger:response badReq
-type swaggReqBadRequest struct {
-	// in:body
-	Body struct {
-		// HTTP status code 400 -  Bad Request
-		Code int `json:"code"`
-	}
-}
-
-// Error Not Found
-// swagger:response notFoundReq
-type swaggReqNotFound struct {
-	// in:body
-	Body struct {
-		// HTTP status code 404 -  Not Found
-		Code int `json:"code"`
-	}
-}
 
 const (
 	sessionName        = "AmiCorp"
@@ -103,14 +63,15 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) configureRouter() {
+	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"http://localhost:8080"})))
+	s.router.Use(handlers.CORS(handlers.AllowCredentials()))
 	s.router.Handle("/metrics", promhttp.Handler())
 	s.router.Use(s.setRequestID)
 	s.router.Use(s.logRequest)
-	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
 	s.router.PathPrefix("/swaggerui/").Handler(http.StripPrefix("/swaggerui/", http.FileServer(http.Dir("src/swager"))))
 	s.router.HandleFunc("/users", s.handleUsersCreate()).Methods("POST")
 	s.router.HandleFunc("/sessions", s.handleSessionsCreate()).Methods("POST")
-	s.router.HandleFunc("/echo", s.echo)
+	s.router.HandleFunc("/auth", s.Auth)
 	s.router.HandleFunc("/", s.home)
 	private := s.router.PathPrefix("/private").Subrouter()
 	private.Use(s.authenticateUsers)
@@ -140,6 +101,7 @@ func (s *server) logRequest(next http.Handler) http.Handler {
 
 func (s *server) authenticateUsers(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		session, err := s.sessionStore.Get(r, sessionName)
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
@@ -159,25 +121,9 @@ func (s *server) authenticateUsers(next http.Handler) http.Handler {
 	})
 }
 
-// swagger:operation GET /accounts/{id} accounts getAccount
-// ---
-// summary: Return an Account provided by the id.
-// description: If the account is found, account will be returned else Error Not Found (404) will be returned.
-// parameters:
-// - name: id
-//   in: path
-//   description: id of the account
-//   type: string
-//   required: true
-// responses:
-//   "200":
-//     "$ref": "#/responses/accountRes"
-//   "400":
-//     "$ref": "#/responses/badReq"
-//   "404":
-//     "$ref": "#/responses/notFoundReq"
 func (s *server) handleWhoami() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setupResponse(&w, r)
 		s.respond(w, r, http.StatusOK, r.Context().Value(ctxKeyUser).(*model.User))
 	}
 
@@ -192,30 +138,15 @@ func (s *server) setRequestID(next http.Handler) http.Handler {
 
 }
 
-// swagger:operation POST /users/{email} accounts getAccount
-// ---
-// summary: Return an Account provided by the id.
-// description: If the account is found, account will be returned else Error Not Found (404) will be returned.
-// parameters:
-// - name: email
-//   in: path
-//   description: id of the account
-//   type: string
-//   required: true
-// responses:
-//   "200":
-//     "$ref": "#/responses/accountRes"
-//   "400":
-//     "$ref": "#/responses/badReq"
-//   "404":
-//     "$ref": "#/responses/notFoundReq"
 func (s *server) handleUsersCreate() http.HandlerFunc {
+
 	type request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setupResponse(&w, r)
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -229,7 +160,6 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 			Password: req.Password,
 		}
 		if err := s.store.User().Create(u); err != nil {
-			fmt.Print("er")
 			s.error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
@@ -239,23 +169,6 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 	}
 }
 
-// swagger:operation POST /accounts/{id} accounts getAccount
-// ---
-// summary: Return an Account provided by the id.
-// description: If the account is found, account will be returned else Error Not Found (404) will be returned.
-// parameters:
-// - name: id
-//   in: path
-//   description: id of the account
-//   type: string
-//   required: true
-// responses:
-//   "200":
-//     "$ref": "#/responses/accountRes"
-//   "400":
-//     "$ref": "#/responses/badReq"
-//   "404":
-//     "$ref": "#/responses/notFoundReq"
 func (s *server) handleSessionsCreate() http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
@@ -263,6 +176,7 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		// setupResponse(&w, r)
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -286,7 +200,7 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		s.respond(w, r, http.StatusOK, nil)
+		s.respond(w, r, http.StatusOK, u)
 	}
 }
 
@@ -306,7 +220,7 @@ func (s *server) home(w http.ResponseWriter, r *http.Request) {
 	webserver.HomeTemplate.Execute(w, "ws://"+r.Host+"/echo")
 }
 
-func (s *server) echo(w http.ResponseWriter, r *http.Request) {
+func (s *server) Auth(w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("Authorization")
 	if !strings.HasPrefix(auth, "Basic ") {
 		logrus.Print("Invalid authorization:", auth)
@@ -327,15 +241,15 @@ func (s *server) echo(w http.ResponseWriter, r *http.Request) {
 
 	io.WriteString(w, "echo1")
 
-	c, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
-
-	if err != nil {
-		logrus.Error("upgrade:", err)
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
-		return
-	}
-	defer c.Close()
-	webserver.SendClient(c)
+	//c, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
+	//
+	//if err != nil {
+	//	logrus.Error("upgrade:", err)
+	//	http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+	//	return
+	//}
+	//defer c.Close()
+	//webserver.SendClient(c)
 
 }
 

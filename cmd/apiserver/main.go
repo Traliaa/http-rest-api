@@ -1,38 +1,12 @@
-// Package classification Account API.
-//
-// this is to show how to write RESTful APIs in golang.
-// that is to provide a detailed overview of the language specs
-//
-// Terms Of Service:
-//
-//     Schemes: http
-//     Host: localhost:8080
-//     Version: 1.0.0
-//     Contact: Korastelev Aleksey a.a.korastelev@gmail.com
-//
-//     Consumes:
-//     - application/json
-//
-//     Produces:
-//     - application/json
-//
-//     Security:
-//     - api_key:
-//
-//     SecurityDefinitions:
-//     api_key:
-//          type: apiKey
-//          name: KEY
-//          in: header
-//
-// swagger:meta
 package main
 
 import (
 	"flag"
-	"github.com/BurntSushi/toml"
 	"github.com/Traliaa/http-rest-api/internal/app/apiserver"
-	"log"
+	api "github.com/Traliaa/http-rest-api/internal/app/proto"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"net"
 )
 
 var (
@@ -45,15 +19,26 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
-
-	config := apiserver.NewConfig()
-	_, err := toml.DecodeFile(configPath, config)
+	//flag.Parse()
+	//
+	//config := apiserver.NewConfig()
+	//_, err := toml.DecodeFile(configPath, config)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//if err := apiserver.Start(config); err != nil {
+	//	log.Fatal(err)
+	//}
+	s := grpc.NewServer()
+	srv := &apiserver.GRPCServer{}
+	api.RegisterLoginServer(s, srv)
+	l, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
+	}
+	if err := s.Serve(l); err != nil {
+		logrus.Fatal(err)
 	}
 
-	if err := apiserver.Start(config); err != nil {
-		log.Fatal(err)
-	}
 }
