@@ -1,9 +1,9 @@
 syntax = "proto3";
 option  go_package = "internal/app/proto";
-package api;
+package proto;
 
 service Login {
-  rpc Login(LoginRequest) returns(LoginResponse) {}
+  rpc UserCreate(LoginRequest) returns(LoginResponse) {}
 }
 
 message LoginRequest {
